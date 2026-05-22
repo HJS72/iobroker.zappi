@@ -27,12 +27,17 @@ iobroker add zappi --host this
 
 In der Admin-Konfiguration:
 
-- myenergi Username
-- myenergi Password
+- Hub Serialnumber (wird intern als username verwendet)
+- API Key (wird intern als password verwendet)
 - API Base URL (standardmaessig `https://s18.myenergi.net`)
 - Polling-Intervall
 - Phasen (1 oder 3) fuer die Umrechnung von Watt in Ampere
 - Current-limit API path template (optional, aber noetig fuer direkte Strom/Leistungsvorgabe)
+
+Hinweis zur Authentifizierung:
+
+- myenergi verwendet bei diesen Endpunkten HTTP Digest Auth.
+- Dabei ist die Hub-Seriennummer der Benutzername und der API-Key das Passwort.
 
 ### Current-limit Template
 
