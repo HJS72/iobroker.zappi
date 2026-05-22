@@ -746,13 +746,15 @@ class ZappiAdapter extends utils.Adapter {
     const clampedAmps = await this.clampCurrent(amps);
     const connectorState = await this.getStateAsync("control.connectorId");
     const connectorId = Math.max(1, Number(connectorState && connectorState.val ? connectorState.val : this.config.defaultConnectorId || 1));
+    const txState = await this.getStateAsync("status.transactionId");
+    const transactionId = Number(txState && txState.val ? txState.val : 0);
+    const hasActiveTransaction = Number.isFinite(transactionId) && transactionId > 0;
 
-    const payload = {
-      connectorId,
-      csChargingProfiles: {
+    const buildProfilePayload = purpose => {
+      const profile = {
         chargingProfileId: 1,
         stackLevel: 0,
-        chargingProfilePurpose: "TxProfile",
+        chargingProfilePurpose: purpose,
         chargingProfileKind: "Recurring",
         recurrencyKind: "Daily",
         chargingSchedule: {
@@ -767,17 +769,27 @@ class ZappiAdapter extends utils.Adapter {
             }
           ]
         }
+      };
+
+      if (purpose === "TxProfile" && hasActiveTransaction) {
+        profile.transactionId = transactionId;
       }
+
+      return {
+        connectorId,
+        csChargingProfiles: profile
+      };
     };
 
-    const response = await this.sendOcppCall("SetChargingProfile", payload);
+    const profilePurpose = hasActiveTransaction ? "TxProfile" : "TxDefaultProfile";
+    const response = await this.sendOcppCall("SetChargingProfile", buildProfilePayload(profilePurpose));
     const status = String(response.status || "");
     if (status && status !== "Accepted") {
       throw new Error(`SetChargingProfile rejected: ${status}`);
     }
 
     await this.setStateAsync("control.maxCurrentA", clampedAmps, true);
-    await this.setStateAsync("status.lastCommand", `maxCurrentA -> ${clampedAmps}`, true);
+    await this.setStateAsync("status.lastCommand", `maxCurrentA -> ${clampedAmps} (${profilePurpose})`, true);
     return clampedAmps;
   }
 
