@@ -1,0 +1,22 @@
+{
+  "name": "iobroker.zappi",
+  "version": "0.1.0",
+  "description": "ioBroker adapter for myenergi zappi wallbox control",
+  "main": "main.js",
+  "scripts": {
+    "lint": "echo 'No lint configured'",
+    "check": "node --check main.js && node --check lib/authDigest.js && node --check lib/digestClient.js && node --check lib/myenergiApi.js"
+  },
+  "keywords": [
+    "iobroker",
+    "myenergi",
+    "zappi",
+    "wallbox",
+    "ev"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@iobroker/adapter-core": "^3.2.3"
+  }
+}

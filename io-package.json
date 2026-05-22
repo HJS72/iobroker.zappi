@@ -1,0 +1,91 @@
+{
+  "common": {
+    "name": "zappi",
+    "version": "0.1.0",
+    "news": {
+      "0.1.0": {
+        "en": "Initial release with direct zappi control states",
+        "de": "Erste Version mit direkten Zappi-Steuer-States"
+      }
+    },
+    "title": "Zappi",
+    "titleLang": {
+      "en": "Zappi",
+      "de": "Zappi"
+    },
+    "desc": {
+      "en": "Adapter for myenergi zappi wallbox",
+      "de": "Adapter fuer myenergi zappi Wallbox"
+    },
+    "authors": [
+      "Local setup"
+    ],
+    "keywords": [
+      "myenergi",
+      "zappi",
+      "wallbox"
+    ],
+    "license": "MIT",
+    "platform": "Javascript/Node.js",
+    "main": "main.js",
+    "enabled": true,
+    "loglevel": "info",
+    "mode": "daemon",
+    "type": "energy",
+    "compact": true,
+    "connectionType": "cloud",
+    "dataSource": "poll",
+    "adminUI": {
+      "config": "json"
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=5.0.0"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=6.0.0"
+      }
+    ]
+  },
+  "encryptedNative": [
+    "password"
+  ],
+  "protectedNative": [
+    "password"
+  ],
+  "native": {
+    "username": "",
+    "password": "",
+    "apiBaseUrl": "https://s18.myenergi.net",
+    "pollInterval": 30,
+    "phases": 3,
+    "currentLimitPathTemplate": "",
+    "defaultZappiSerial": ""
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "role": "indicator.connected",
+        "name": "Connected to myenergi API",
+        "type": "boolean",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    }
+  ]
+}
