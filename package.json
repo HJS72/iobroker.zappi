@@ -1,6 +1,6 @@
 {
   "name": "iobroker.zappi",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "ioBroker zappi adapter with integrated OCPP server mode",
   "main": "main.js",
   "scripts": {

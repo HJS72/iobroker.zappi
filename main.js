@@ -939,8 +939,17 @@ class ZappiAdapter extends utils.Adapter {
         return;
       }
 
+      const isButtonControl = control === "remoteStart" || control === "remoteStop";
+      const shouldTriggerButton = state.val === true || state.val === 1 || String(state.val).toLowerCase() === "true";
+      if (isButtonControl && !shouldTriggerButton) {
+        return;
+      }
+
       const authorized = await this.isControlAuthorized(control);
       if (!authorized) {
+        if (isButtonControl) {
+          await this.setStateAsync(`control.${control}`, false, true);
+        }
         return;
       }
 
@@ -965,14 +974,20 @@ class ZappiAdapter extends utils.Adapter {
       }
 
       if (control === "remoteStart") {
-        await this.handleRemoteStart();
-        await this.setStateAsync("control.remoteStart", false, true);
+        try {
+          await this.handleRemoteStart();
+        } finally {
+          await this.setStateAsync("control.remoteStart", false, true);
+        }
         return;
       }
 
       if (control === "remoteStop") {
-        await this.handleRemoteStop();
-        await this.setStateAsync("control.remoteStop", false, true);
+        try {
+          await this.handleRemoteStop();
+        } finally {
+          await this.setStateAsync("control.remoteStop", false, true);
+        }
       }
     } catch (error) {
       await this.setStateAsync("status.lastError", error.message, true);

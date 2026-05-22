@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "zappi",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "news": {
+      "0.4.2": {
+        "en": "Fix remoteStart/remoteStop button handling so commands trigger reliably and always reset",
+        "de": "RemoteStart/RemoteStop-Buttonhandling korrigiert: Befehle werden zuverlaessig ausgeloest und Buttons immer zurueckgesetzt"
+      },
       "0.4.1": {
         "en": "Server-only release: removed bridge/cloud leftovers and simplified configuration",
         "de": "Server-Only-Release: Bridge/Cloud-Reste entfernt und Konfiguration vereinfacht"
