@@ -1,12 +1,11 @@
 {
   "name": "iobroker.zappi",
-  "version": "0.4.0",
-  "description": "ioBroker custom OCPP bridge adapter for zappi wallbox control",
+  "version": "0.4.1",
+  "description": "ioBroker zappi adapter with integrated OCPP server mode",
   "main": "main.js",
   "scripts": {
     "lint": "echo 'No lint configured'",
-    "check": "node --check main.js && node --check lib/authDigest.js && node --check lib/digestClient.js && node --check lib/myenergiApi.js",
-    "probe:myenergi": "node scripts/probe-myenergi.js"
+    "check": "node --check main.js"
   },
   "keywords": [
     "iobroker",

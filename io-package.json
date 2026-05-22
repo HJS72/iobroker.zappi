@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "zappi",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "news": {
+      "0.4.1": {
+        "en": "Server-only release: removed bridge/cloud leftovers and simplified configuration",
+        "de": "Server-Only-Release: Bridge/Cloud-Reste entfernt und Konfiguration vereinfacht"
+      },
       "0.4.0": {
         "en": "Integrated OCPP 1.6J server mode with direct charge point communication, TLS/auth options and remote control commands",
         "de": "Integrierter OCPP-1.6J-Servermodus mit direkter Kommunikation zur Wallbox, TLS/Auth-Optionen und Remote-Steuerbefehlen"
@@ -26,8 +30,8 @@
       "de": "Zappi"
     },
     "desc": {
-      "en": "Custom OCPP bridge adapter for zappi control in ioBroker",
-      "de": "Eigener OCPP-Bridge-Adapter fuer zappi Steuerung in ioBroker"
+      "en": "Integrated OCPP server adapter for direct zappi control in ioBroker",
+      "de": "Integrierter OCPP-Server-Adapter zur direkten zappi-Steuerung in ioBroker"
     },
     "authors": [
       "Local setup"
@@ -70,14 +74,6 @@
     "serverAuthToken"
   ],
   "native": {
-    "connectionMode": "server",
-    "pollInterval": 10,
-    "connectorStatusStateId": "",
-    "currentStateId": "",
-    "powerStateId": "",
-    "phaseReadStateId": "",
-    "phaseSetStateId": "",
-    "currentSetStateId": "",
     "connectedStatusValues": "Preparing,Charging,SuspendedEV,SuspendedEVSE,Finishing",
     "phaseSingleValue": "1",
     "phaseThreeValue": "3",

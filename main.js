@@ -14,7 +14,6 @@ class ZappiAdapter extends utils.Adapter {
       name: "zappi"
     });
 
-    this.pollTimer = null;
     this.automationTimer = null;
     this.autoAuthorizeTimer = null;
 
@@ -22,8 +21,6 @@ class ZappiAdapter extends utils.Adapter {
     this.wsServer = null;
     this.ocppSessions = new Map();
     this.ocppTxCounter = 0;
-
-    this.mode = "server";
 
     this.lastKnownPhaseCount = 3;
     this.connectedStates = new Set();
@@ -63,19 +60,7 @@ class ZappiAdapter extends utils.Adapter {
     await this.setStateAsync("control.automationEnabled", this.automationEnabled, true);
     await this.subscribeStatesAsync("control.*");
 
-    if (this.mode === "bridge") {
-      if (!this.config.connectorStatusStateId) {
-        this.log.error("Bitte connectorStatusStateId in der Adapter-Konfiguration setzen.");
-        return;
-      }
-
-      await this.refreshBridgeData();
-      this.pollTimer = setInterval(async () => {
-        await this.refreshBridgeData();
-      }, Math.max(5, Number(this.config.pollInterval) || 10) * 1000);
-    } else {
-      await this.startOcppServer();
-    }
+    await this.startOcppServer();
 
     if (this.automationEnabled) {
       await this.startAutomationLoop();
@@ -90,11 +75,6 @@ class ZappiAdapter extends utils.Adapter {
   }
 
   readConfig() {
-    this.mode = String(this.config.connectionMode || "server").toLowerCase();
-    if (this.mode !== "bridge" && this.mode !== "server") {
-      this.mode = "server";
-    }
-
     this.connectedStates = this.parseConnectedStates(this.config.connectedStatusValues);
     this.phaseTextToValue = {
       single: String(this.config.phaseSingleValue || "1").trim(),
@@ -192,157 +172,111 @@ class ZappiAdapter extends utils.Adapter {
       });
     }
 
-    await this.setObjectNotExistsAsync("control.refresh", {
-      type: "state",
-      common: {
-        name: "Refresh now",
-        type: "boolean",
-        role: "button",
-        read: false,
-        write: true,
-        def: false
+    const controlStates = [
+      {
+        id: "control.refresh",
+        common: { name: "Refresh now", type: "boolean", role: "button", read: false, write: true, def: false }
       },
-      native: {}
-    });
+      {
+        id: "control.phaseSetting",
+        common: {
+          name: "Requested phase setting",
+          type: "string",
+          role: "text",
+          states: { single: "Single phase", three: "Three phase" },
+          read: true,
+          write: true,
+          def: "three"
+        }
+      },
+      {
+        id: "control.maxCurrentA",
+        common: {
+          name: "Target max current",
+          type: "number",
+          role: "level.current",
+          unit: "A",
+          min: 6,
+          max: 32,
+          read: true,
+          write: true,
+          def: 16
+        }
+      },
+      {
+        id: "control.targetPowerW",
+        common: {
+          name: "Target charging power",
+          type: "number",
+          role: "level.power",
+          unit: "W",
+          min: 1400,
+          max: 22000,
+          read: true,
+          write: true,
+          def: 3680
+        }
+      },
+      {
+        id: "control.authorizeCode",
+        common: { name: "Enter authorization code", type: "string", role: "text", read: false, write: true, def: "" }
+      },
+      {
+        id: "control.lockControls",
+        common: { name: "Lock controls now", type: "boolean", role: "button", read: false, write: true, def: false }
+      },
+      {
+        id: "control.automationEnabled",
+        common: {
+          name: "Automation enabled",
+          type: "boolean",
+          role: "switch.enable",
+          read: true,
+          write: true,
+          def: false
+        }
+      },
+      {
+        id: "control.remoteStart",
+        common: { name: "OCPP RemoteStartTransaction", type: "boolean", role: "button", read: false, write: true, def: false }
+      },
+      {
+        id: "control.remoteStop",
+        common: { name: "OCPP RemoteStopTransaction", type: "boolean", role: "button", read: false, write: true, def: false }
+      },
+      {
+        id: "control.idTag",
+        common: {
+          name: "OCPP idTag",
+          type: "string",
+          role: "text",
+          read: true,
+          write: true,
+          def: String(this.config.defaultIdTag || "A0000001")
+        }
+      },
+      {
+        id: "control.connectorId",
+        common: {
+          name: "OCPP connector ID",
+          type: "number",
+          role: "value",
+          read: true,
+          write: true,
+          min: 1,
+          max: 8,
+          def: Math.max(1, Number(this.config.defaultConnectorId) || 1)
+        }
+      }
+    ];
 
-    await this.setObjectNotExistsAsync("control.phaseSetting", {
-      type: "state",
-      common: {
-        name: "Requested phase setting",
-        type: "string",
-        role: "text",
-        states: { single: "Single phase", three: "Three phase" },
-        read: true,
-        write: true,
-        def: "three"
-      },
-      native: {}
-    });
-
-    await this.setObjectNotExistsAsync("control.maxCurrentA", {
-      type: "state",
-      common: {
-        name: "Target max current",
-        type: "number",
-        role: "level.current",
-        unit: "A",
-        min: 6,
-        max: 32,
-        read: true,
-        write: true,
-        def: 16
-      },
-      native: {}
-    });
-
-    await this.setObjectNotExistsAsync("control.targetPowerW", {
-      type: "state",
-      common: {
-        name: "Target charging power",
-        type: "number",
-        role: "level.power",
-        unit: "W",
-        min: 1400,
-        max: 22000,
-        read: true,
-        write: true,
-        def: 3680
-      },
-      native: {}
-    });
-
-    await this.setObjectNotExistsAsync("control.authorizeCode", {
-      type: "state",
-      common: {
-        name: "Enter authorization code",
-        type: "string",
-        role: "text",
-        read: false,
-        write: true,
-        def: ""
-      },
-      native: {}
-    });
-
-    await this.setObjectNotExistsAsync("control.lockControls", {
-      type: "state",
-      common: {
-        name: "Lock controls now",
-        type: "boolean",
-        role: "button",
-        read: false,
-        write: true,
-        def: false
-      },
-      native: {}
-    });
-
-    await this.setObjectNotExistsAsync("control.automationEnabled", {
-      type: "state",
-      common: {
-        name: "Automation enabled",
-        type: "boolean",
-        role: "switch.enable",
-        read: true,
-        write: true,
-        def: false
-      },
-      native: {}
-    });
-
-    await this.setObjectNotExistsAsync("control.remoteStart", {
-      type: "state",
-      common: {
-        name: "OCPP RemoteStartTransaction",
-        type: "boolean",
-        role: "button",
-        read: false,
-        write: true,
-        def: false
-      },
-      native: {}
-    });
-
-    await this.setObjectNotExistsAsync("control.remoteStop", {
-      type: "state",
-      common: {
-        name: "OCPP RemoteStopTransaction",
-        type: "boolean",
-        role: "button",
-        read: false,
-        write: true,
-        def: false
-      },
-      native: {}
-    });
-
-    await this.setObjectNotExistsAsync("control.idTag", {
-      type: "state",
-      common: {
-        name: "OCPP idTag",
-        type: "string",
-        role: "text",
-        read: true,
-        write: true,
-        def: String(this.config.defaultIdTag || "A0000001")
-      },
-      native: {}
-    });
-
-    await this.setObjectNotExistsAsync("control.connectorId", {
-      type: "state",
-      common: {
-        name: "OCPP connector ID",
-        type: "number",
-        role: "value",
-        read: true,
-        write: true,
-        min: 1,
-        max: 8,
-        def: Math.max(1, Number(this.config.defaultConnectorId) || 1)
-      },
-      native: {}
-    });
+    for (const item of controlStates) {
+      await this.setObjectNotExistsAsync(item.id, {
+        type: "state",
+        common: item.common,
+        native: {}
+      });
+    }
   }
 
   async updateAuthorizationStates() {
@@ -449,56 +383,6 @@ class ZappiAdapter extends utils.Adapter {
     return foreignState.val;
   }
 
-  async refreshBridgeData() {
-    if (this.mode !== "bridge") {
-      return;
-    }
-
-    try {
-      const connectorStatusRaw = await this.readForeignValue(this.config.connectorStatusStateId);
-      const connectorStatus = String(connectorStatusRaw == null ? "" : connectorStatusRaw).trim();
-      const connectorStatusLc = connectorStatus.toLowerCase();
-
-      const vehicleConnected = this.connectedStates.has(connectorStatusLc);
-      const charging = connectorStatusLc === "charging";
-
-      await this.setStateAsync("status.connectorStatus", connectorStatus, true);
-      await this.setStateAsync("status.vehicleConnected", vehicleConnected, true);
-      await this.setStateAsync("status.charging", charging, true);
-
-      if (this.config.currentStateId) {
-        const currentA = Number(await this.readForeignValue(this.config.currentStateId));
-        if (Number.isFinite(currentA)) {
-          await this.setStateAsync("status.currentA", currentA, true);
-        }
-      }
-
-      if (this.config.powerStateId) {
-        const powerW = Number(await this.readForeignValue(this.config.powerStateId));
-        if (Number.isFinite(powerW)) {
-          await this.setStateAsync("status.powerW", powerW, true);
-        }
-      }
-
-      if (this.config.phaseReadStateId) {
-        const phaseRaw = await this.readForeignValue(this.config.phaseReadStateId);
-        const phaseText = this.parsePhaseSetting(phaseRaw);
-        if (phaseText) {
-          this.lastKnownPhaseCount = phaseText === "single" ? 1 : 3;
-          await this.setStateAsync("status.phaseSetting", phaseText, true);
-          await this.setStateAsync("control.phaseSetting", phaseText, true);
-        }
-      }
-
-      await this.setStateAsync("info.connection", true, true);
-      await this.setStateAsync("status.lastError", "", true);
-    } catch (error) {
-      await this.setStateAsync("info.connection", false, true);
-      await this.setStateAsync("status.lastError", error.message, true);
-      this.log.error(`Fehler beim Aktualisieren der Bridge-Daten: ${error.message}`);
-    }
-  }
-
   getAllowedChargePoints() {
     return new Set(
       String(this.config.allowedChargePointIds || "")
@@ -543,21 +427,21 @@ class ZappiAdapter extends utils.Adapter {
           try {
             const { cpId, token } = this.getChargePointFromRequest(req);
             if (!cpId) {
-              socket.write("HTTP/1.1 400 Bad Request\r\n\r\n");
+              socket.write("HTTP/1.1 400 Bad Request\\r\\n\\r\\n");
               socket.destroy();
               return;
             }
 
             const requiredToken = String(this.config.serverAuthToken || "");
             if (requiredToken && token !== requiredToken) {
-              socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+              socket.write("HTTP/1.1 401 Unauthorized\\r\\n\\r\\n");
               socket.destroy();
               return;
             }
 
             const allowed = this.getAllowedChargePoints();
             if (allowed.size > 0 && !allowed.has(cpId)) {
-              socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+              socket.write("HTTP/1.1 403 Forbidden\\r\\n\\r\\n");
               socket.destroy();
               return;
             }
@@ -842,21 +726,14 @@ class ZappiAdapter extends utils.Adapter {
   }
 
   async applyPhaseSetting(phaseText) {
-    if (this.mode === "bridge") {
-      if (!this.config.phaseSetStateId) {
-        throw new Error("phaseSetStateId ist nicht konfiguriert");
-      }
-      await this.setForeignStateAsync(this.config.phaseSetStateId, this.phaseTextToValue[phaseText], false);
-    } else {
-      const key = String(this.config.ocppPhaseConfigKey || "NumberOfPhases");
-      const response = await this.sendOcppCall("ChangeConfiguration", {
-        key,
-        value: this.phaseTextToValue[phaseText]
-      });
-      const status = String(response.status || "");
-      if (status && status !== "Accepted" && status !== "RebootRequired") {
-        throw new Error(`ChangeConfiguration rejected: ${status}`);
-      }
+    const key = String(this.config.ocppPhaseConfigKey || "NumberOfPhases");
+    const response = await this.sendOcppCall("ChangeConfiguration", {
+      key,
+      value: this.phaseTextToValue[phaseText]
+    });
+    const status = String(response.status || "");
+    if (status && status !== "Accepted" && status !== "RebootRequired") {
+      throw new Error(`ChangeConfiguration rejected: ${status}`);
     }
 
     await this.setStateAsync("control.phaseSetting", phaseText, true);
@@ -867,44 +744,36 @@ class ZappiAdapter extends utils.Adapter {
 
   async applyMaxCurrentA(amps) {
     const clampedAmps = await this.clampCurrent(amps);
+    const connectorState = await this.getStateAsync("control.connectorId");
+    const connectorId = Math.max(1, Number(connectorState && connectorState.val ? connectorState.val : this.config.defaultConnectorId || 1));
 
-    if (this.mode === "bridge") {
-      if (!this.config.currentSetStateId) {
-        throw new Error("currentSetStateId ist nicht konfiguriert");
-      }
-      await this.setForeignStateAsync(this.config.currentSetStateId, clampedAmps, false);
-    } else {
-      const connectorState = await this.getStateAsync("control.connectorId");
-      const connectorId = Math.max(1, Number(connectorState && connectorState.val ? connectorState.val : this.config.defaultConnectorId || 1));
-
-      const payload = {
-        connectorId,
-        csChargingProfiles: {
-          chargingProfileId: 1,
-          stackLevel: 0,
-          chargingProfilePurpose: "TxProfile",
-          chargingProfileKind: "Recurring",
-          recurrencyKind: "Daily",
-          chargingSchedule: {
-            duration: 86400,
-            startSchedule: new Date().toISOString(),
-            chargingRateUnit: "A",
-            chargingSchedulePeriod: [
-              {
-                startPeriod: 0,
-                limit: clampedAmps,
-                numberPhases: this.lastKnownPhaseCount === 1 ? 1 : 3
-              }
-            ]
-          }
+    const payload = {
+      connectorId,
+      csChargingProfiles: {
+        chargingProfileId: 1,
+        stackLevel: 0,
+        chargingProfilePurpose: "TxProfile",
+        chargingProfileKind: "Recurring",
+        recurrencyKind: "Daily",
+        chargingSchedule: {
+          duration: 86400,
+          startSchedule: new Date().toISOString(),
+          chargingRateUnit: "A",
+          chargingSchedulePeriod: [
+            {
+              startPeriod: 0,
+              limit: clampedAmps,
+              numberPhases: this.lastKnownPhaseCount === 1 ? 1 : 3
+            }
+          ]
         }
-      };
-
-      const response = await this.sendOcppCall("SetChargingProfile", payload);
-      const status = String(response.status || "");
-      if (status && status !== "Accepted") {
-        throw new Error(`SetChargingProfile rejected: ${status}`);
       }
+    };
+
+    const response = await this.sendOcppCall("SetChargingProfile", payload);
+    const status = String(response.status || "");
+    if (status && status !== "Accepted") {
+      throw new Error(`SetChargingProfile rejected: ${status}`);
     }
 
     await this.setStateAsync("control.maxCurrentA", clampedAmps, true);
@@ -998,10 +867,6 @@ class ZappiAdapter extends utils.Adapter {
   }
 
   async handleRemoteStart() {
-    if (this.mode !== "server") {
-      throw new Error("RemoteStart ist nur im server-Modus verfuegbar.");
-    }
-
     const idTagState = await this.getStateAsync("control.idTag");
     const connectorState = await this.getStateAsync("control.connectorId");
     const idTag = String(idTagState && idTagState.val ? idTagState.val : this.config.defaultIdTag || "A0000001");
@@ -1016,10 +881,6 @@ class ZappiAdapter extends utils.Adapter {
   }
 
   async handleRemoteStop() {
-    if (this.mode !== "server") {
-      throw new Error("RemoteStop ist nur im server-Modus verfuegbar.");
-    }
-
     const txState = await this.getStateAsync("status.transactionId");
     const transactionId = Number(txState && txState.val ? txState.val : 0);
     if (!transactionId) {
@@ -1049,9 +910,7 @@ class ZappiAdapter extends utils.Adapter {
 
     try {
       if (control === "refresh") {
-        if (this.mode === "bridge") {
-          await this.refreshBridgeData();
-        }
+        await this.setStateAsync("status.lastCommand", "refresh requested", true);
         await this.setStateAsync("control.refresh", false, true);
         return;
       }
@@ -1123,11 +982,6 @@ class ZappiAdapter extends utils.Adapter {
 
   async onUnload(callback) {
     try {
-      if (this.pollTimer) {
-        clearInterval(this.pollTimer);
-        this.pollTimer = null;
-      }
-
       this.stopAutomationLoop();
 
       if (this.autoAuthorizeTimer) {

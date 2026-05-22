@@ -6,92 +6,10 @@
       "type": "panel",
       "label": "Main settings",
       "items": {
-        "connectionMode": {
-          "type": "select",
-          "label": "Connection mode",
-          "newLine": true,
-          "sm": 12,
-          "md": 6,
-          "lg": 4,
-          "options": [
-            {
-              "label": "Integrated OCPP server (direct)",
-              "value": "server"
-            },
-            {
-              "label": "Bridge to existing OCPP adapter states",
-              "value": "bridge"
-            }
-          ]
-        },
-        "connectorStatusStateId": {
-          "type": "text",
-          "label": "OCPP connector status state ID",
-          "newLine": true,
-          "sm": 12,
-          "md": 12,
-          "lg": 12,
-          "help": "Required. Example: ocpp.0.chargePoint01.connectorStatus"
-        },
-        "currentStateId": {
-          "type": "text",
-          "label": "OCPP measured current state ID",
-          "newLine": true,
-          "sm": 12,
-          "md": 12,
-          "lg": 12,
-          "help": "Optional. Example: ocpp.0.chargePoint01.currentA"
-        },
-        "powerStateId": {
-          "type": "text",
-          "label": "OCPP measured power state ID",
-          "newLine": true,
-          "sm": 12,
-          "md": 12,
-          "lg": 12,
-          "help": "Optional. Example: ocpp.0.chargePoint01.powerW"
-        },
-        "phaseReadStateId": {
-          "type": "text",
-          "label": "OCPP phase status state ID",
-          "newLine": true,
-          "sm": 12,
-          "md": 12,
-          "lg": 12,
-          "help": "Optional. Value should represent 1/3 phases (single/three/1/3)."
-        },
-        "phaseSetStateId": {
-          "type": "text",
-          "label": "OCPP phase command state ID",
-          "newLine": true,
-          "sm": 12,
-          "md": 12,
-          "lg": 12,
-          "help": "Required for phase switching control."
-        },
-        "currentSetStateId": {
-          "type": "text",
-          "label": "OCPP current command state ID",
-          "newLine": true,
-          "sm": 12,
-          "md": 12,
-          "lg": 12,
-          "help": "Required for maxCurrentA and targetPowerW control."
-        },
-        "pollInterval": {
-          "type": "number",
-          "label": "Polling interval (seconds)",
-          "newLine": true,
-          "min": 5,
-          "max": 300,
-          "sm": 12,
-          "md": 6,
-          "lg": 4
-        },
         "connectedStatusValues": {
           "type": "text",
           "label": "Connector states considered as vehicle connected",
-          "newLine": false,
+          "newLine": true,
           "sm": 12,
           "md": 6,
           "lg": 4,

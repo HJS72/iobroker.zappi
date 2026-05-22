@@ -1,28 +1,34 @@
 # ioBroker.zappi
 
-Custom ioBroker adapter for zappi with integrated OCPP 1.6J server mode.
+Server-only ioBroker adapter with integrated OCPP 1.6J WebSocket server.
 
-## Overview
+## Goal
 
-This adapter supports two architectures:
+One adapter only:
 
-- server mode: this adapter provides the OCPP WebSocket server directly
-- bridge mode: this adapter reads/writes states of another OCPP adapter instance
+- zappi connects directly to this adapter via OCPP
+- no external OCPP adapter required
 
-If you want only one adapter, use server mode.
+## Main Features
 
-## Core Features
-
-- detect if vehicle is connected
-- switch 1/3 phases
-- set charging current/power and change it while charging
+- direct OCPP server (ws/wss)
+- charge point access control (token and allowlist)
+- write authorization for control commands
+- vehicle connected detection
+- 1/3 phase switching
+- dynamic current and power control
 - optional built-in automation loop
-- write authorization with timeout
-- integrated OCPP commands: RemoteStartTransaction and RemoteStopTransaction
+- remote start and remote stop controls
 
-## Security and Authorization
+## Security
 
-### Adapter write authorization
+### OCPP endpoint security
+
+- optional token check via query string token
+- optional charge point ID allowlist
+- optional TLS (WSS) with key/cert files
+
+### Control authorization
 
 Protected controls:
 
@@ -34,27 +40,13 @@ Protected controls:
 
 Unlock flow:
 
-1. write code to control.authorizeCode
-2. adapter unlocks controls until authorizationTimeoutSec
-3. optional immediate lock with control.lockControls
-
-### OCPP server access control
-
-Server-side hardening options:
-
-- serverAuthToken: requires query token (?token=...)
-- allowedChargePointIds: CP ID allowlist
-- TLS/WSS with ocppTlsEnabled + key/cert paths
-- request timeout for outbound OCPP calls
+1. write authorization code to control.authorizeCode
+2. adapter unlocks for authorizationTimeoutSec
+3. lock immediately with control.lockControls
 
 ## Configuration
 
-### General
-
-- connectionMode: server or bridge
-- connectedStatusValues: status values counted as "vehicle connected"
-
-### Server Mode (direct)
+### OCPP server
 
 - ocppServerHost
 - ocppServerPort
@@ -65,18 +57,15 @@ Server-side hardening options:
 - allowedChargePointIds
 - ocppHeartbeatIntervalSec
 - ocppRequestTimeoutSec
+
+### Control behavior
+
+- connectedStatusValues
+- phaseSingleValue
+- phaseThreeValue
 - ocppPhaseConfigKey
 - defaultIdTag
 - defaultConnectorId
-
-### Bridge Mode
-
-- connectorStatusStateId
-- currentStateId (optional)
-- powerStateId (optional)
-- phaseReadStateId (optional)
-- phaseSetStateId
-- currentSetStateId
 
 ### Authorization
 
@@ -84,7 +73,7 @@ Server-side hardening options:
 - authorizationCode
 - authorizationTimeoutSec
 
-### Built-in Automation
+### Built-in automation
 
 - automationEnabled
 - automationIntervalSec
@@ -139,17 +128,9 @@ Server-side hardening options:
 - control.idTag
 - control.connectorId
 
-## Power Conversion
+## OCPP messages handled
 
-When writing targetPowerW:
-
-amps = powerW / (230 * phases)
-
-Current is rounded and clamped to 6..32A.
-
-## OCPP Notes
-
-Implemented OCPP server handling includes common 1.6J core flows:
+Incoming:
 
 - BootNotification
 - Heartbeat
@@ -159,22 +140,22 @@ Implemented OCPP server handling includes common 1.6J core flows:
 - StopTransaction
 - Authorize
 
-Outgoing control calls used by this adapter:
+Outgoing control calls:
 
-- ChangeConfiguration (phase switching key/value)
-- SetChargingProfile (current limit)
+- ChangeConfiguration
+- SetChargingProfile
 - RemoteStartTransaction
 - RemoteStopTransaction
 
-## Quick Start (single adapter)
+## Quick start
 
-1. Set connectionMode=server
-2. Configure host/port and optional TLS
-3. Configure zappi/myaccount OCPP backend URI to this server endpoint
-4. Set authorizationCode and requireWriteAuthorization=true
-5. Test control.remoteStart, control.maxCurrentA, control.phaseSetting
+1. Configure server host and port
+2. Configure zappi/myaccount OCPP backend URI to this adapter endpoint
+3. Optionally enable TLS and token check
+4. Set authorization code
+5. Test control.remoteStart, control.maxCurrentA and control.phaseSetting
 
-## Installation (local)
+## Installation
 
 ```bash
 npm install
