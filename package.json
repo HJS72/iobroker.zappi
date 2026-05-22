@@ -1,15 +1,16 @@
 {
   "name": "iobroker.zappi",
-  "version": "0.1.0",
-  "description": "ioBroker adapter for myenergi zappi wallbox control",
+  "version": "0.4.0",
+  "description": "ioBroker custom OCPP bridge adapter for zappi wallbox control",
   "main": "main.js",
   "scripts": {
     "lint": "echo 'No lint configured'",
-    "check": "node --check main.js && node --check lib/authDigest.js && node --check lib/digestClient.js && node --check lib/myenergiApi.js"
+    "check": "node --check main.js && node --check lib/authDigest.js && node --check lib/digestClient.js && node --check lib/myenergiApi.js",
+    "probe:myenergi": "node scripts/probe-myenergi.js"
   },
   "keywords": [
     "iobroker",
-    "myenergi",
+    "ocpp",
     "zappi",
     "wallbox",
     "ev"
@@ -17,6 +18,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@iobroker/adapter-core": "^3.2.3"
+    "@iobroker/adapter-core": "^3.2.3",
+    "ws": "^8.18.0"
   }
 }

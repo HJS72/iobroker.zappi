@@ -1,8 +1,20 @@
 {
   "common": {
     "name": "zappi",
-    "version": "0.1.0",
+    "version": "0.4.0",
     "news": {
+      "0.4.0": {
+        "en": "Integrated OCPP 1.6J server mode with direct charge point communication, TLS/auth options and remote control commands",
+        "de": "Integrierter OCPP-1.6J-Servermodus mit direkter Kommunikation zur Wallbox, TLS/Auth-Optionen und Remote-Steuerbefehlen"
+      },
+      "0.3.0": {
+        "en": "Add built-in automation mode with optional auto-authorization, dynamic power control and phase switching",
+        "de": "Integrierter Automatikmodus mit optionaler Auto-Autorisierung, dynamischer Leistungsregelung und Phasenumschaltung"
+      },
+      "0.2.0": {
+        "en": "Switch to OCPP bridge mode with states for vehicle connected, phase switching and dynamic current/power control",
+        "de": "Umstellung auf OCPP-Bridge mit States fuer Fahrzeug verbunden, Phasenumschaltung und dynamische Strom/Leistungssteuerung"
+      },
       "0.1.0": {
         "en": "Initial release with direct zappi control states",
         "de": "Erste Version mit direkten Zappi-Steuer-States"
@@ -14,14 +26,14 @@
       "de": "Zappi"
     },
     "desc": {
-      "en": "Adapter for myenergi zappi wallbox",
-      "de": "Adapter fuer myenergi zappi Wallbox"
+      "en": "Custom OCPP bridge adapter for zappi control in ioBroker",
+      "de": "Eigener OCPP-Bridge-Adapter fuer zappi Steuerung in ioBroker"
     },
     "authors": [
       "Local setup"
     ],
     "keywords": [
-      "myenergi",
+      "ocpp",
       "zappi",
       "wallbox"
     ],
@@ -33,7 +45,7 @@
     "mode": "daemon",
     "type": "energy",
     "compact": true,
-    "connectionType": "cloud",
+    "connectionType": "local",
     "dataSource": "poll",
     "adminUI": {
       "config": "json"
@@ -50,19 +62,50 @@
     ]
   },
   "encryptedNative": [
-    "password"
+    "authorizationCode",
+    "serverAuthToken"
   ],
   "protectedNative": [
-    "password"
+    "authorizationCode",
+    "serverAuthToken"
   ],
   "native": {
-    "username": "",
-    "password": "",
-    "apiBaseUrl": "https://s18.myenergi.net",
-    "pollInterval": 30,
-    "phases": 3,
-    "currentLimitPathTemplate": "",
-    "defaultZappiSerial": ""
+    "connectionMode": "server",
+    "pollInterval": 10,
+    "connectorStatusStateId": "",
+    "currentStateId": "",
+    "powerStateId": "",
+    "phaseReadStateId": "",
+    "phaseSetStateId": "",
+    "currentSetStateId": "",
+    "connectedStatusValues": "Preparing,Charging,SuspendedEV,SuspendedEVSE,Finishing",
+    "phaseSingleValue": "1",
+    "phaseThreeValue": "3",
+    "requireWriteAuthorization": true,
+    "authorizationCode": "",
+    "authorizationTimeoutSec": 300,
+    "automationEnabled": false,
+    "automationIntervalSec": 20,
+    "autoPowerInputStateId": "",
+    "automationOnlyWhenConnected": true,
+    "autoMinPowerW": 1400,
+    "autoMaxPowerW": 22000,
+    "autoPhaseSwitchEnabled": false,
+    "autoSinglePhaseBelowW": 3500,
+    "autoAuthorizeEnabled": false,
+    "autoAuthorizeIntervalSec": 120,
+    "ocppServerHost": "0.0.0.0",
+    "ocppServerPort": 9220,
+    "ocppTlsEnabled": false,
+    "ocppTlsKeyPath": "",
+    "ocppTlsCertPath": "",
+    "serverAuthToken": "",
+    "allowedChargePointIds": "",
+    "ocppHeartbeatIntervalSec": 30,
+    "ocppRequestTimeoutSec": 20,
+    "ocppPhaseConfigKey": "NumberOfPhases",
+    "defaultIdTag": "A0000001",
+    "defaultConnectorId": 1
   },
   "objects": [],
   "instanceObjects": [
@@ -79,7 +122,7 @@
       "type": "state",
       "common": {
         "role": "indicator.connected",
-        "name": "Connected to myenergi API",
+        "name": "Connected to configured OCPP states",
         "type": "boolean",
         "read": true,
         "write": false,
