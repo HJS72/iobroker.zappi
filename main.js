@@ -727,19 +727,42 @@ class ZappiAdapter extends utils.Adapter {
 
   async applyPhaseSetting(phaseText) {
     const key = String(this.config.ocppPhaseConfigKey || "NumberOfPhases");
-    const response = await this.sendOcppCall("ChangeConfiguration", {
-      key,
-      value: this.phaseTextToValue[phaseText]
-    });
-    const status = String(response.status || "");
-    if (status && status !== "Accepted" && status !== "RebootRequired") {
-      throw new Error(`ChangeConfiguration rejected: ${status}`);
+    let appliedVia = "ChangeConfiguration";
+
+    try {
+      const response = await this.sendOcppCall("ChangeConfiguration", {
+        key,
+        value: this.phaseTextToValue[phaseText]
+      });
+      const status = String(response.status || "");
+      if (status && status !== "Accepted" && status !== "RebootRequired") {
+        throw new Error(`ChangeConfiguration rejected: ${status}`);
+      }
+    } catch (error) {
+      const msg = String(error && error.message ? error.message : "");
+      const notSupported = /ChangeConfiguration rejected: NotSupported|NotSupported|NotImplemented/i.test(msg);
+      if (!notSupported) {
+        throw error;
+      }
+      appliedVia = "SetChargingProfile.numberPhases";
+      this.log.warn(`ChangeConfiguration fuer Phasenumschaltung nicht unterstuetzt, nutze Fallback ueber SetChargingProfile (${phaseText}).`);
     }
 
     await this.setStateAsync("control.phaseSetting", phaseText, true);
     await this.setStateAsync("status.phaseSetting", phaseText, true);
     this.lastKnownPhaseCount = phaseText === "single" ? 1 : 3;
-    await this.setStateAsync("status.lastCommand", `phaseSetting -> ${phaseText} (${this.phaseTextToValue[phaseText]})`, true);
+
+    if (appliedVia !== "ChangeConfiguration") {
+      const currentAState = await this.getStateAsync("control.maxCurrentA");
+      const fallbackAmps = Number(currentAState && currentAState.val ? currentAState.val : 16);
+      await this.applyMaxCurrentA(fallbackAmps);
+    }
+
+    await this.setStateAsync(
+      "status.lastCommand",
+      `phaseSetting -> ${phaseText} (${this.phaseTextToValue[phaseText]}) via ${appliedVia}`,
+      true
+    );
   }
 
   async applyMaxCurrentA(amps) {

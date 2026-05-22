@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "zappi",
-    "version": "0.4.3",
+    "version": "0.4.4",
     "news": {
+      "0.4.4": {
+        "en": "Add phase switching fallback when ChangeConfiguration is not supported: keep phase state and enforce numberPhases via SetChargingProfile",
+        "de": "Fallback fuer Phasenumschaltung hinzugefuegt, wenn ChangeConfiguration nicht unterstuetzt wird: Phasenstatus beibehalten und numberPhases ueber SetChargingProfile erzwingen"
+      },
       "0.4.3": {
         "en": "Fix SetChargingProfile for chargers that reject TxProfile without active transaction by using TxDefaultProfile before start and TxProfile with transactionId during active charging",
         "de": "SetChargingProfile korrigiert fuer Charger, die TxProfile ohne aktive Transaktion ablehnen: vor Start TxDefaultProfile, waehrend aktiver Ladung TxProfile mit transactionId"
