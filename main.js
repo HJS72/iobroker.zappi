@@ -765,6 +765,37 @@ class ZappiAdapter extends utils.Adapter {
     );
   }
 
+  buildChargingProfile(amps, purpose, connectorId, transactionId) {
+    const profile = {
+      chargingProfileId: 1,
+      stackLevel: 0,
+      chargingProfilePurpose: purpose,
+      chargingProfileKind: "Recurring",
+      recurrencyKind: "Daily",
+      chargingSchedule: {
+        duration: 86400,
+        startSchedule: new Date().toISOString(),
+        chargingRateUnit: "A",
+        chargingSchedulePeriod: [
+          {
+            startPeriod: 0,
+            limit: amps,
+            numberPhases: this.lastKnownPhaseCount === 1 ? 1 : 3
+          }
+        ]
+      }
+    };
+
+    if (purpose === "TxProfile" && transactionId > 0) {
+      profile.transactionId = transactionId;
+    }
+
+    return {
+      connectorId,
+      csChargingProfiles: profile
+    };
+  }
+
   async applyMaxCurrentA(amps) {
     const clampedAmps = await this.clampCurrent(amps);
     const connectorState = await this.getStateAsync("control.connectorId");
@@ -773,39 +804,11 @@ class ZappiAdapter extends utils.Adapter {
     const transactionId = Number(txState && txState.val ? txState.val : 0);
     const hasActiveTransaction = Number.isFinite(transactionId) && transactionId > 0;
 
-    const buildProfilePayload = purpose => {
-      const profile = {
-        chargingProfileId: 1,
-        stackLevel: 0,
-        chargingProfilePurpose: purpose,
-        chargingProfileKind: "Recurring",
-        recurrencyKind: "Daily",
-        chargingSchedule: {
-          duration: 86400,
-          startSchedule: new Date().toISOString(),
-          chargingRateUnit: "A",
-          chargingSchedulePeriod: [
-            {
-              startPeriod: 0,
-              limit: clampedAmps,
-              numberPhases: this.lastKnownPhaseCount === 1 ? 1 : 3
-            }
-          ]
-        }
-      };
-
-      if (purpose === "TxProfile" && hasActiveTransaction) {
-        profile.transactionId = transactionId;
-      }
-
-      return {
-        connectorId,
-        csChargingProfiles: profile
-      };
-    };
-
     const profilePurpose = hasActiveTransaction ? "TxProfile" : "TxDefaultProfile";
-    const response = await this.sendOcppCall("SetChargingProfile", buildProfilePayload(profilePurpose));
+    const response = await this.sendOcppCall(
+      "SetChargingProfile",
+      this.buildChargingProfile(clampedAmps, profilePurpose, connectorId, transactionId)
+    );
     const status = String(response.status || "");
     if (status && status !== "Accepted") {
       throw new Error(`SetChargingProfile rejected: ${status}`);
@@ -904,15 +907,27 @@ class ZappiAdapter extends utils.Adapter {
   async handleRemoteStart() {
     const idTagState = await this.getStateAsync("control.idTag");
     const connectorState = await this.getStateAsync("control.connectorId");
+    const currentState = await this.getStateAsync("control.maxCurrentA");
     const idTag = String(idTagState && idTagState.val ? idTagState.val : this.config.defaultIdTag || "A0000001");
     const connectorId = Math.max(1, Number(connectorState && connectorState.val ? connectorState.val : this.config.defaultConnectorId || 1));
+    const targetCurrentA = await this.clampCurrent(currentState && currentState.val ? currentState.val : 16);
 
-    const response = await this.sendOcppCall("RemoteStartTransaction", { idTag, connectorId });
+    await this.applyMaxCurrentA(targetCurrentA);
+
+    const response = await this.sendOcppCall("RemoteStartTransaction", {
+      idTag,
+      connectorId,
+      chargingProfile: this.buildChargingProfile(targetCurrentA, "TxDefaultProfile", connectorId, 0).csChargingProfiles
+    });
     const status = String(response.status || "");
     if (status && status !== "Accepted") {
       throw new Error(`RemoteStartTransaction rejected: ${status}`);
     }
-    await this.setStateAsync("status.lastCommand", `remoteStart -> ${status || "Accepted"}`, true);
+    await this.setStateAsync(
+      "status.lastCommand",
+      `remoteStart -> ${status || "Accepted"} (${targetCurrentA}A prepared)`,
+      true
+    );
   }
 
   async handleRemoteStop() {

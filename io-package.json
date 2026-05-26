@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "zappi",
-    "version": "0.4.4",
+    "version": "0.4.5",
     "news": {
+      "0.4.5": {
+        "en": "Prepare charging profile before remote start and attach it to RemoteStartTransaction for chargers that otherwise accept the command but do not begin charging",
+        "de": "Ladeprofil vor RemoteStart vorbereiten und an RemoteStartTransaction anhaengen fuer Charger, die den Befehl sonst zwar akzeptieren, aber den Ladevorgang nicht starten"
+      },
       "0.4.4": {
         "en": "Add phase switching fallback when ChangeConfiguration is not supported: keep phase state and enforce numberPhases via SetChargingProfile",
         "de": "Fallback fuer Phasenumschaltung hinzugefuegt, wenn ChangeConfiguration nicht unterstuetzt wird: Phasenstatus beibehalten und numberPhases ueber SetChargingProfile erzwingen"
