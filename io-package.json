@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "zappi",
-    "version": "0.4.7",
+    "version": "0.4.8",
     "news": {
+      "0.4.8": {
+        "en": "Retry RemoteStartTransaction without chargingProfile if the initial request with profile times out",
+        "de": "RemoteStartTransaction ohne chargingProfile erneut versuchen, wenn der erste Request mit Profil in ein Timeout laeuft"
+      },
       "0.4.7": {
         "en": "Do not block remote start when SetChargingProfile times out before a transaction; defer current limit until StartTransaction and apply it afterwards",
         "de": "Remote-Start nicht mehr blockieren, wenn SetChargingProfile vor einer Transaktion in ein Timeout laeuft; Stromlimit bis StartTransaction vormerken und danach anwenden"

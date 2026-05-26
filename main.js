@@ -814,6 +814,11 @@ class ZappiAdapter extends utils.Adapter {
     return /OCPP request timeout for SetChargingProfile/i.test(message);
   }
 
+  isRemoteStartTimeout(error) {
+    const message = String(error && error.message ? error.message : "");
+    return /OCPP request timeout for RemoteStartTransaction/i.test(message);
+  }
+
   async applyMaxCurrentA(amps, options = {}) {
     const clampedAmps = await this.clampCurrent(amps);
     const connectorState = await this.getStateAsync("control.connectorId");
@@ -951,18 +956,31 @@ class ZappiAdapter extends utils.Adapter {
     const connectorId = Math.max(1, Number(connectorState && connectorState.val ? connectorState.val : this.config.defaultConnectorId || 1));
     const targetCurrentA = await this.clampCurrent(currentState && currentState.val ? currentState.val : 16);
 
-    const response = await this.sendOcppCall("RemoteStartTransaction", {
-      idTag,
-      connectorId,
-      chargingProfile: this.buildChargingProfile(targetCurrentA, "TxDefaultProfile", connectorId, 0).csChargingProfiles
-    });
+    let response;
+    let startMode = "withProfile";
+
+    try {
+      response = await this.sendOcppCall("RemoteStartTransaction", {
+        idTag,
+        connectorId,
+        chargingProfile: this.buildChargingProfile(targetCurrentA, "TxDefaultProfile", connectorId, 0).csChargingProfiles
+      });
+    } catch (error) {
+      if (!this.isRemoteStartTimeout(error)) {
+        throw error;
+      }
+
+      startMode = "withoutProfile";
+      response = await this.sendOcppCall("RemoteStartTransaction", { idTag, connectorId });
+    }
+
     const status = String(response.status || "");
     if (status && status !== "Accepted") {
       throw new Error(`RemoteStartTransaction rejected: ${status}`);
     }
     await this.setStateAsync(
       "status.lastCommand",
-      `remoteStart -> ${status || "Accepted"} (${targetCurrentA}A prepared)`,
+      `remoteStart -> ${status || "Accepted"} (${targetCurrentA}A prepared, ${startMode})`,
       true
     );
   }
