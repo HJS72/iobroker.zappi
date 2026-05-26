@@ -636,6 +636,14 @@ class ZappiAdapter extends utils.Adapter {
       const txId = this.ocppTxCounter;
       await this.setStateAsync("status.transactionId", txId, true);
       await this.setStateAsync("status.charging", true, true);
+
+      const currentState = await this.getStateAsync("control.maxCurrentA");
+      const targetCurrentA = await this.clampCurrent(currentState && currentState.val ? currentState.val : 16);
+      void this.applyMaxCurrentA(targetCurrentA, { profilePurpose: "TxProfile" }).catch(async error => {
+        await this.setStateAsync("status.lastError", error.message, true);
+        this.log.warn(`SetChargingProfile nach StartTransaction fehlgeschlagen: ${error.message}`);
+      });
+
       return {
         transactionId: txId,
         idTagInfo: { status: "Accepted" }
@@ -801,6 +809,11 @@ class ZappiAdapter extends utils.Adapter {
     return /FormationViolation:.*TxProfile can only be used when a transaction is in progress/i.test(message);
   }
 
+  isSetChargingProfileTimeout(error) {
+    const message = String(error && error.message ? error.message : "");
+    return /OCPP request timeout for SetChargingProfile/i.test(message);
+  }
+
   async applyMaxCurrentA(amps, options = {}) {
     const clampedAmps = await this.clampCurrent(amps);
     const connectorState = await this.getStateAsync("control.connectorId");
@@ -819,6 +832,11 @@ class ZappiAdapter extends utils.Adapter {
       );
     } catch (error) {
       if (profilePurpose !== "TxProfile" || !this.isMissingTransactionProfileError(error)) {
+        if (!hasActiveTransaction && profilePurpose === "TxDefaultProfile" && this.isSetChargingProfileTimeout(error)) {
+          await this.setStateAsync("control.maxCurrentA", clampedAmps, true);
+          await this.setStateAsync("status.lastCommand", `maxCurrentA -> ${clampedAmps} (deferred until transaction)`, true);
+          return clampedAmps;
+        }
         throw error;
       }
 
@@ -932,8 +950,6 @@ class ZappiAdapter extends utils.Adapter {
     const idTag = String(idTagState && idTagState.val ? idTagState.val : this.config.defaultIdTag || "A0000001");
     const connectorId = Math.max(1, Number(connectorState && connectorState.val ? connectorState.val : this.config.defaultConnectorId || 1));
     const targetCurrentA = await this.clampCurrent(currentState && currentState.val ? currentState.val : 16);
-
-    await this.applyMaxCurrentA(targetCurrentA, { profilePurpose: "TxDefaultProfile" });
 
     const response = await this.sendOcppCall("RemoteStartTransaction", {
       idTag,

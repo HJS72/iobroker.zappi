@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "zappi",
-    "version": "0.4.6",
+    "version": "0.4.7",
     "news": {
+      "0.4.7": {
+        "en": "Do not block remote start when SetChargingProfile times out before a transaction; defer current limit until StartTransaction and apply it afterwards",
+        "de": "Remote-Start nicht mehr blockieren, wenn SetChargingProfile vor einer Transaktion in ein Timeout laeuft; Stromlimit bis StartTransaction vormerken und danach anwenden"
+      },
       "0.4.6": {
         "en": "Fallback to TxDefaultProfile when chargers reject TxProfile because no transaction is active, and force TxDefaultProfile before remote start",
         "de": "Fallback auf TxDefaultProfile, wenn Charger TxProfile ohne aktive Transaktion ablehnen, und vor Remote-Start immer TxDefaultProfile erzwingen"
