@@ -796,7 +796,12 @@ class ZappiAdapter extends utils.Adapter {
     };
   }
 
-  async applyMaxCurrentA(amps) {
+  isMissingTransactionProfileError(error) {
+    const message = String(error && error.message ? error.message : "");
+    return /FormationViolation:.*TxProfile can only be used when a transaction is in progress/i.test(message);
+  }
+
+  async applyMaxCurrentA(amps, options = {}) {
     const clampedAmps = await this.clampCurrent(amps);
     const connectorState = await this.getStateAsync("control.connectorId");
     const connectorId = Math.max(1, Number(connectorState && connectorState.val ? connectorState.val : this.config.defaultConnectorId || 1));
@@ -804,11 +809,27 @@ class ZappiAdapter extends utils.Adapter {
     const transactionId = Number(txState && txState.val ? txState.val : 0);
     const hasActiveTransaction = Number.isFinite(transactionId) && transactionId > 0;
 
-    const profilePurpose = hasActiveTransaction ? "TxProfile" : "TxDefaultProfile";
-    const response = await this.sendOcppCall(
-      "SetChargingProfile",
-      this.buildChargingProfile(clampedAmps, profilePurpose, connectorId, transactionId)
-    );
+    let profilePurpose = options.profilePurpose || (hasActiveTransaction ? "TxProfile" : "TxDefaultProfile");
+    let response;
+
+    try {
+      response = await this.sendOcppCall(
+        "SetChargingProfile",
+        this.buildChargingProfile(clampedAmps, profilePurpose, connectorId, transactionId)
+      );
+    } catch (error) {
+      if (profilePurpose !== "TxProfile" || !this.isMissingTransactionProfileError(error)) {
+        throw error;
+      }
+
+      profilePurpose = "TxDefaultProfile";
+      await this.setStateAsync("status.transactionId", 0, true);
+      response = await this.sendOcppCall(
+        "SetChargingProfile",
+        this.buildChargingProfile(clampedAmps, profilePurpose, connectorId, 0)
+      );
+    }
+
     const status = String(response.status || "");
     if (status && status !== "Accepted") {
       throw new Error(`SetChargingProfile rejected: ${status}`);
@@ -912,7 +933,7 @@ class ZappiAdapter extends utils.Adapter {
     const connectorId = Math.max(1, Number(connectorState && connectorState.val ? connectorState.val : this.config.defaultConnectorId || 1));
     const targetCurrentA = await this.clampCurrent(currentState && currentState.val ? currentState.val : 16);
 
-    await this.applyMaxCurrentA(targetCurrentA);
+    await this.applyMaxCurrentA(targetCurrentA, { profilePurpose: "TxDefaultProfile" });
 
     const response = await this.sendOcppCall("RemoteStartTransaction", {
       idTag,

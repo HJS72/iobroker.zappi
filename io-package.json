@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "zappi",
-    "version": "0.4.5",
+    "version": "0.4.6",
     "news": {
+      "0.4.6": {
+        "en": "Fallback to TxDefaultProfile when chargers reject TxProfile because no transaction is active, and force TxDefaultProfile before remote start",
+        "de": "Fallback auf TxDefaultProfile, wenn Charger TxProfile ohne aktive Transaktion ablehnen, und vor Remote-Start immer TxDefaultProfile erzwingen"
+      },
       "0.4.5": {
         "en": "Prepare charging profile before remote start and attach it to RemoteStartTransaction for chargers that otherwise accept the command but do not begin charging",
         "de": "Ladeprofil vor RemoteStart vorbereiten und an RemoteStartTransaction anhaengen fuer Charger, die den Befehl sonst zwar akzeptieren, aber den Ladevorgang nicht starten"
