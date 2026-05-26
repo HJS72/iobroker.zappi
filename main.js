@@ -971,7 +971,16 @@ class ZappiAdapter extends utils.Adapter {
       }
 
       startMode = "withoutProfile";
-      response = await this.sendOcppCall("RemoteStartTransaction", { idTag, connectorId });
+      try {
+        response = await this.sendOcppCall("RemoteStartTransaction", { idTag, connectorId });
+      } catch (retryError) {
+        if (!this.isRemoteStartTimeout(retryError)) {
+          throw retryError;
+        }
+
+        startMode = "withoutProfileNoConnector";
+        response = await this.sendOcppCall("RemoteStartTransaction", { idTag });
+      }
     }
 
     const status = String(response.status || "");
